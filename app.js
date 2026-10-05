@@ -1,133 +1,418 @@
-const KEY="duo_fit_v001";
-const today=new Date(2026,9,4); // prototype date
-const state=JSON.parse(localStorage.getItem(KEY)||"null")||{
- user:"julien",
- workouts:[
-  {id:1,user:"julien",date:"2026-10-01",duration:28,items:[{exercise:"squat",sets:3,reps:12},{exercise:"bike",sets:1,reps:15}],points:51},
-  {id:2,user:"partner",date:"2026-10-01",duration:35,items:[{exercise:"squat",sets:3,reps:15},{exercise:"lunge",sets:2,reps:10}],points:65},
-  {id:3,user:"julien",date:"2026-10-03",duration:31,items:[{exercise:"pushup",sets:2,reps:8},{exercise:"lateral",sets:3,reps:12}],points:58},
-  {id:4,user:"partner",date:"2026-10-03",duration:25,items:[{exercise:"bike",sets:1,reps:20}],points:20}
- ],
- quick:[
-  {id:5,user:"julien",date:"2026-10-04",type:"Marche",duration:20,points:10}
- ]
+const KEY = "duofit_data_v1";
+
+const defaultState = {
+  user: "julien",
+  users: [
+    { id: "julien", name: "Julien" },
+    { id: "arina", name: "Arina" }
+  ],
+  exercises: [
+    { id: "exo_1", name: "Pompes", category: "Haut du corps", description: "Mains écartées largeur d'épaules, corps gainé.", points: 10 },
+    { id: "exo_2", name: "Squats", category: "Bas du corps", description: "Pieds largeur de bassin, descendre cuisses parallèles au sol.", points: 10 },
+    { id: "exo_3", name: "Fentes", category: "Bas du corps", description: "Buste droit, fléchir le genou arrière vers le sol.", points: 12 },
+    { id: "exo_4", name: "Gainage", category: "Abdos", description: "Appui sur les avant-bras, corps droit sans creuser le dos.", points: 8 },
+    { id: "exo_5", name: "Cardio / Vélo", category: "Cardio", description: "Activité d'endurance libre.", points: 5 }
+  ],
+  workouts: []
 };
-function save(){localStorage.setItem(KEY,JSON.stringify(state))}
-const exercises=[
- {id:"squat",name:"Squat",cat:"Jambes",desc:"Descente contrôlée, genoux dans l'axe des pieds.",points:10,unit:"répétitions",art:"squat"},
- {id:"lunge",name:"Fente",cat:"Jambes",desc:"Pas contrôlé, buste stable et genou avant aligné.",points:12,unit:"répétitions",art:"lunge"},
- {id:"pushup",name:"Pompes",cat:"Haut du corps",desc:"Corps gainé, descente contrôlée, mains sous les épaules.",points:15,unit:"répétitions",art:"pushup"},
- {id:"lateral",name:"Élévation latérale",cat:"Épaules",desc:"Bras légèrement fléchis, mouvement lent et contrôlé.",points:8,unit:"répétitions",art:"lateral"},
- {id:"deadbug",name:"Dead bug",cat:"Centre du corps",desc:"Dos stable au sol, mouvements lents et opposés.",points:10,unit:"répétitions",art:"deadbug"},
- {id:"bike",name:"Vélo",cat:"Cardio",desc:"Activité cardio à intensité confortable et régulière.",points:5,unit:"minutes",art:"bike"},
- {id:"walk",name:"Marche",cat:"Cardio",desc:"Marche active ou tranquille, selon l'objectif du jour.",points:5,unit:"minutes",art:"walk"},
- {id:"mobility",name:"Mobilité",cat:"Mobilité",desc:"Routine douce pour retrouver de l'amplitude.",points:5,unit:"minutes",art:"mobility"}
-];
-const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const userName=()=>state.user==="julien"?"Julien":"Elle";
-function fmtDate(d){return d.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}
-function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
-function iconSvg(type){
- const common=`<svg viewBox="0 0 120 120" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">`;
- let p="";
- if(type==="squat")p=`<circle cx="61" cy="18" r="9"/><path d="M61 28v29m0 0-22 19m22-19 25 18M39 76l-11 23m36-22 13 23M39 76l18-4 10 4"/>`;
- if(type==="lunge")p=`<circle cx="59" cy="18" r="9"/><path d="M59 28v30m0-18-22 14m22-14 25 13m-25 5-18 22m18-22 31 13m-31-13-12 27m43-14 13 12"/>`;
- if(type==="pushup")p=`<circle cx="25" cy="43" r="8"/><path d="M33 46 61 57l31-2m-59-12-18 13m46-1-7 25m39-37 11 15M46 80h43"/>`;
- if(type==="lateral")p=`<circle cx="60" cy="17" r="9"/><path d="M60 27v42m0-31-29 10m29-10 29 10M60 69 43 99m17-30 17 30M31 48l-9 4m67-4 9 4"/>`;
- if(type==="deadbug")p=`<circle cx="54" cy="53" r="8"/><path d="M62 56 86 68m-30-7-22 14m31-18 13-22m-25 24-10-22m13 40-2 18m20-14 15 11"/>`;
- if(type==="bike")p=`<circle cx="32" cy="78" r="20"/><circle cx="91" cy="78" r="20"/><path d="M32 78 52 45h20l19 33M52 45l10 33m-30 0h59M52 45l-9-11m29 11 10-12"/>`;
- if(type==="walk")p=`<circle cx="61" cy="17" r="9"/><path d="M61 27l-5 30m5-20-22 13m22-13 18 12M56 57 39 98m17-41 23 42"/>`;
- if(type==="mobility")p=`<circle cx="61" cy="20" r="9"/><path d="M61 30v32m0-19-31 7m31-7 29 7M61 62 40 96m21-34 22 34"/>`;
- return common+p+"</g></svg>";
+
+let state = JSON.parse(localStorage.getItem(KEY)) || defaultState;
+
+function save() {
+  localStorage.setItem(KEY, JSON.stringify(state));
 }
-function totalForUser(u){return [...state.workouts,...state.quick].filter(x=>x.user===u).reduce((a,x)=>a+(x.points||0),0)}
-function weekItems(u){
- const start=new Date(2026,8,28), end=new Date(2026,9,4,23,59);
- return [...state.workouts,...state.quick].filter(x=>x.user===u&&new Date(x.date)>=start&&new Date(x.date)<=end)
+
+const $ = s => document.querySelector(s); const $$ = s => [...document.querySelectorAll(s)];
+
+const getUserName = id => (id === "julien" ? "Julien" : "Arina");
+
+function toast(msg) {
+  const el = document.createElement("div");
+  el.className = "toast";
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2200);
 }
-function weekPoints(u){return weekItems(u).reduce((a,x)=>a+x.points,0)}
-function weekSessions(u){return new Set(weekItems(u).map(x=>x.date)).size}
-function xp(u){return totalForUser(u)*3}
-function level(u){return Math.floor(xp(u)/300)+1}
-function latest(u){return [...state.workouts,...state.quick].filter(x=>x.user===u).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6)}
-function render(){
- const page=$(".nav-item.active")?.dataset.page||"dashboard";
- $("#page-eyebrow").textContent=fmtDate(today).toUpperCase();
- $("#page-title").textContent=page==="dashboard"?`Bonjour ${userName()}`:({calendar:"Calendrier",exercises:"Exercices",challenges:"Défis",profile:`Profil — ${userName()}`}[page]);
- ({dashboard:renderDashboard,calendar:renderCalendar,exercises:renderExercises,challenges:renderChallenges,profile:renderProfile}[page])();
+
+function openModal(html) {
+  $("#modal-content").innerHTML = html;
+  $("#modal").classList.add("open");
 }
-function renderDashboard(){
- const me=weekPoints(state.user), other=weekPoints(state.user==="julien"?"partner":"julien");
- const recent=latest(state.user);
- $("#content").innerHTML=`
- <div class="grid grid-4">
-  ${stat("Points cette semaine",me,other?`+ ${Math.max(0,me-other)} vs l'autre joueur`:"")}
-  ${stat("Activités",weekSessions(state.user),"objectif : 4 cette semaine")}
-  ${stat("Niveau",level(state.user),`${xp(state.user)} XP au total`)}
-  ${stat("Série actuelle",streak(state.user),"jours actifs")}
- </div>
- <div class="section-head"><h2 class="section-title">Cette semaine</h2><span class="stat-sub">Objectif collectif : 700 pts</span></div>
- <div class="card">
-  ${personProgress("julien","Julien")} ${personProgress("partner","Elle")}
-  <div style="margin-top:18px"><div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;margin-bottom:7px"><span>À deux</span><span>${weekPoints("julien")+weekPoints("partner")} / 700</span></div><div class="progress"><i style="width:${Math.min(100,(weekPoints("julien")+weekPoints("partner"))/7)}%"></i></div></div>
- </div>
- <div class="two-col">
-  <div><div class="section-head"><h2 class="section-title">Dernières activités</h2></div><div class="card">${recent.length?`<div class="activity-list">${recent.map(activityHtml).join("")}</div>`:`<div class="empty">Aucune activité enregistrée.</div>`}</div></div>
-  <div><div class="section-head"><h2 class="section-title">Objectifs</h2></div><div class="grid" style="gap:10px">${challengeMini("3 activités cette semaine",weekSessions(state.user),3)}${challengeMini("150 points cette semaine",weekPoints(state.user),150)}${challengeMini("Objectif à deux",weekPoints("julien")+weekPoints("partner"),700)}</div></div>
- </div>`;
+
+function closeModal() {
+  $("#modal").classList.remove("open");
 }
-function stat(label,value,sub){return `<div class="card"><div class="stat-label">${label}</div><div class="stat-value">${value}</div><div class="stat-sub">${sub}</div></div>`}
-function personProgress(u,label){let p=Math.min(100,weekPoints(u)/350*100);return `<div class="person-row"><strong><span class="mini-avatar ${u==="julien"?"j":"e"}">${u==="julien"?"J":"E"}</span>${label}</strong><div><div class="progress ${u==="partner"?"purple":""}"><i style="width:${p}%"></i></div></div><div class="score">${weekPoints(u)} pts</div></div>`}
-function activityHtml(x){let name=x.type||x.items?.map(i=>exercises.find(e=>e.id===i.exercise)?.name).join(" · ")||"Activité";return `<div class="activity"><div class="activity-main"><div class="activity-icon">${x.type?"↗":"◈"}</div><div><div class="activity-name">${esc(name)}</div><div class="activity-meta">${x.date} · ${x.duration||0} min · ${x.user==="julien"?"Julien":"Elle"}</div></div></div><div class="points">+${x.points} pts</div></div>`}
-function challengeMini(name,val,target){return `<div class="card" style="padding:15px"><div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700"><span>${name}</span><span>${Math.min(val,target)} / ${target}</span></div><div class="progress" style="margin-top:9px"><i style="width:${Math.min(100,val/target*100)}%"></i></div></div>`}
-function streak(u){let dates=[...new Set([...state.workouts,...state.quick].filter(x=>x.user===u).map(x=>x.date))].sort().reverse(), cur=new Date(2026,9,4), n=0;for(let i=0;i<dates.length;i++){let d=dates[i], target=cur.toISOString().slice(0,10);if(d===target){n++;cur.setDate(cur.getDate()-1)}else if(i===0&&d===new Date(2026,9,3).toISOString().slice(0,10)){n++;cur.setDate(cur.getDate()-2)}else break}return n}
-function renderCalendar(){
- const y=2026,m=9, first=new Date(y,m,1), days=new Date(y,m+1,0).getDate(), offset=(first.getDay()+6)%7;
- let cells="";for(let i=0;i<offset;i++)cells+=`<div class="day muted"></div>`;
- for(let d=1;d<=days;d++){let date=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`, items=[...state.workouts,...state.quick].filter(x=>x.date===date), hasJ=items.some(x=>x.user==="julien"),hasE=items.some(x=>x.user==="partner"), cls=hasJ&&hasE?"both":hasE?"partner":"";cells+=`<button class="day ${date==="2026-10-04"?"today":""}" onclick="showDay('${date}')"><div class="day-number">${d}</div>${hasJ?`<div class="day-activity ${cls}">J · ${items.filter(x=>x.user==="julien").reduce((a,x)=>a+x.points,0)} pts</div>`:""}${hasE?`<div class="day-activity ${cls}">E · ${items.filter(x=>x.user==="partner").reduce((a,x)=>a+x.points,0)} pts</div>`:""}</button>`}
- $("#content").innerHTML=`<div class="calendar"><div class="calendar-head"><div><h2>Octobre 2026</h2><span class="stat-sub">Clique sur une journée pour voir le détail</span></div><div class="month-nav"><button>‹</button><button>›</button></div></div><div class="weekdays">${["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"].map(x=>`<div class="weekday">${x}</div>`).join("")}</div><div class="days">${cells}</div></div>`;
+
+// Navigation & utilisateur
+$$(".user-btn").forEach(btn => {   btn.onclick = () => {     state.user = btn.dataset.user;     $$
+(".user-btn").forEach(b => b.classList.toggle("active", b === btn));
+    render();
+  };
+});
+
+$$(".nav-item").forEach(btn => {   btn.onclick = () => {     $$
+(".nav-item").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    render();
+  };
+});
+
+$("#add-workout-btn").onclick = () => openAddWorkoutModal();
+$("#json-btn").onclick = () => openJsonModal();
+$("#modal").onclick = e => { if (e.target.id === "modal") closeModal(); };
+
+function render() {
+  const page = $(".nav-item.active")?.dataset.page || "dashboard";
+  const views = {
+    dashboard: renderDashboard,
+    calendar: renderCalendar,
+    exercises: renderExercises,
+    challenges: renderChallenges,
+    profile: renderProfile
+  };
+  views[page]();
 }
-function showDay(date){let items=[...state.workouts,...state.quick].filter(x=>x.date===date);openModal(`<div class="modal-header"><h2>${date}</h2><button class="close" onclick="closeModal()">×</button></div>${items.length?`<div class="activity-list">${items.map(activityHtml).join("")}</div>`:`<div class="empty">Aucune activité ce jour-là.</div>`}`)}
-function renderExercises(){
- let cats=["Tous","Jambes","Haut du corps","Épaules","Centre du corps","Cardio","Mobilité"];
- $("#content").innerHTML=`<div class="card" style="margin-bottom:16px;padding:13px;display:flex;gap:8px;flex-wrap:wrap">${cats.map((c,i)=>`<button class="tag" style="${i===0?"background:#eef1ff;color:#4568e8":""}" onclick="filterExercises('${c}')">${c}</button>`).join("")}</div><div id="exercise-grid" class="grid grid-3">${exercises.map(exerciseCard).join("")}</div>`;
+
+// Calculs
+function getPoints(userId) {
+  return state.workouts
+    .filter(w => w.user === userId)
+    .reduce((sum, w) => sum + (w.points || 0), 0);
 }
-function filterExercises(cat){$("#exercise-grid").innerHTML=exercises.filter(e=>cat==="Tous"||e.cat===cat).map(exerciseCard).join("")}
-function exerciseCard(e){return `<div class="card exercise-card"><div class="exercise-art">${iconSvg(e.art)}</div><div class="exercise-body"><h3>${e.name}</h3><p>${e.desc}</p><span class="tag">${e.cat}</span><div class="exercise-footer"><span class="exercise-points">${e.points} pts / ${e.unit}</span><button class="primary-btn" style="padding:8px 10px;font-size:10px" onclick="openWorkout('${e.id}')">Ajouter</button></div></div></div>`}
-function renderChallenges(){
- const both=weekPoints("julien")+weekPoints("partner");
- $("#content").innerHTML=`<div class="grid grid-3">
- ${challenge("700","Objectif à deux","Atteindre 700 points cumulés cette semaine.",both,700,"Coopération")}
- ${challenge("3","Régularité","Faire au moins 3 activités chacun cette semaine.",Math.min(weekSessions("julien"),weekSessions("partner")),3,"Duo")}
- ${challenge("1","Première place","Terminer la semaine en tête du classement.",weekPoints(state.user),Math.max(weekPoints("julien"),weekPoints("partner"))||1,"Compétition")}
- </div>
- <div class="section-head"><h2 class="section-title">Classement de la semaine</h2></div>
- <div class="card">${ranking()}</div>
- <div class="section-head"><h2 class="section-title">Récompenses</h2></div>
- <div class="grid grid-3">${reward("7","Première semaine","Faire 3 activités.",weekSessions(state.user)>=3)}${reward("150","Régulier","Atteindre 150 pts sur une semaine.",weekPoints(state.user)>=150)}${reward("700","Duo solide","Atteindre 700 pts à deux.",both>=700)}</div>`;
+
+function getWorkoutsCount(userId) {
+  return state.workouts.filter(w => w.user === userId).length;
 }
-function challenge(badge,name,desc,val,target,type){return `<div class="card challenge"><div class="challenge-badge">${badge}</div><h3>${name}</h3><p>${desc}</p><div class="progress"><i style="width:${Math.min(100,val/target*100)}%"></i></div><div class="challenge-foot"><span>${type}</span><strong>${Math.min(val,target)} / ${target}</strong></div></div>`}
-function ranking(){let a=[["Julien",weekPoints("julien"),"j"],["Elle",weekPoints("partner"),"e"]].sort((x,y)=>y[1]-x[1]);return a.map((x,i)=>`<div class="person-row" style="grid-template-columns:120px 1fr 80px"><strong><span class="mini-avatar ${x[2]}">${x[2]==="j"?"J":"E"}</span>${i===0?"🥇 ":""}${x[0]}</strong><div class="progress ${x[2]==="e"?"purple":""}"><i style="width:${x[1]/Math.max(a[0][1],1)*100}%"></i></div><div class="score">${x[1]} pts</div></div>`).join("")}
-function reward(n,name,desc,done){return `<div class="card" style="opacity:${done?1:.55}"><div style="font-size:22px;font-weight:800;margin-bottom:9px">${n}</div><strong style="font-size:12px">${name}</strong><p style="font-size:10px;color:var(--muted);margin:5px 0">${desc}</p><span class="tag">${done?"Débloqué":"À débloquer"}</span></div>`}
-function renderProfile(){
- let u=state.user,total=totalForUser(u), sessions=new Set([...state.workouts,...state.quick].filter(x=>x.user===u).map(x=>x.date)).size;
- let cats={Jambes:0,"Haut du corps":0,Épaules:0,"Centre du corps":0,Cardio:0,Mobilité:0};
- state.workouts.filter(x=>x.user===u).forEach(w=>w.items.forEach(i=>{let e=exercises.find(e=>e.id===i.exercise);if(e)cats[e.cat]+=i.sets*i.reps}));
- let max=Math.max(...Object.values(cats),1);
- $("#content").innerHTML=`<div class="grid grid-2"><div class="card"><div class="profile-hero"><div class="profile-big ${u==="julien"?"j":"e"}">${u==="julien"?"J":"E"}</div><div><h2 style="margin:0;font-size:20px">${u==="julien"?"Julien":"Elle"}</h2><p style="margin:5px 0;color:var(--muted);font-size:11px">Niveau ${level(u)} · ${xp(u)} XP</p></div></div><div style="margin-top:25px"><div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;margin-bottom:7px"><span>Progression vers le niveau ${level(u)+1}</span><span>${xp(u)%300} / 300</span></div><div class="progress"><i style="width:${(xp(u)%300)/3}%"></i></div></div></div>
- <div class="card"><h2 class="section-title">Mes statistiques</h2><div class="grid grid-3">${stat("Points",total,"total")}${stat("Jours actifs",sessions,"depuis le début")}${stat("Meilleure série",streak(u),"jours")}</div></div></div>
- <div class="section-head"><h2 class="section-title">Répartition de l'activité</h2></div><div class="card">${Object.entries(cats).map(([k,v])=>`<div class="bar-row"><span>${k}</span><div class="bar"><i style="width:${v/max*100}%"></i></div><strong>${v}</strong></div>`).join("")}</div>`;
+
+// Vue Dashboard
+function renderDashboard() {
+  const ptsJulien = getPoints("julien");
+  const ptsArina = getPoints("arina");
+  const total = ptsJulien + ptsArina;
+
+  $("#content").innerHTML = `
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="stat-label">COMPÉTITION / COOPÉRATION</span>
+        <span style="font-weight:800; font-size:12px;">${total} pts cumulés</span>
+      </div>
+      <div style="margin-top:12px;">
+        <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700; margin-bottom:4px;">
+          <span>Julien (${ptsJulien} pts)</span>
+          <span>Arina (${ptsArina} pts)</span>
+        </div>
+        <div class="progress-bar" style="display:flex;">
+          <div class="progress-fill" style="width:${total ? (ptsJulien / total * 100) : 50}%"></div>
+          <div class="progress-fill arina" style="width:${total ? (ptsArina / total * 100) : 50}%"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="stat-label">Mes séances</div>
+        <div class="stat-val">${getWorkoutsCount(state.user)}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Mes points</div>
+        <div class="stat-val">${getPoints(state.user)}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title">Dernières séances</h3>
+      ${state.workouts.length === 0 
+        ? `<p class="exercise-desc" style="text-align:center; padding:12px 0;">Aucune séance enregistrée pour le moment.</p>` 
+        : state.workouts.slice(-5).reverse().map(w => `
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line);">
+              <div>
+                <strong>${getUserName(w.user)}</strong> · <span class="exercise-desc">${w.date}</span>
+                <div class="exercise-desc">${w.items.map(i => {
+                  const ex = state.exercises.find(e => e.id === i.exercise);
+                  return ex ? ex.name : "Exercice";
+                }).join(", ")}</div>
+              </div>
+              <strong style="color:var(--julien);">+${w.points} pts</strong>
+            </div>
+          `).join("")
+      }
+    </div>
+  `;
 }
-function openWorkout(prefill=null){let e=exercises.find(x=>x.id===prefill)||exercises[0];openModal(`<div class="modal-header"><h2>Nouvelle séance</h2><button class="close" onclick="closeModal()">×</button></div><div class="form-grid"><div class="field"><label>DATE</label><input id="w-date" type="date" value="2026-10-04"></div><div class="field"><label>DURÉE (MIN)</label><input id="w-duration" type="number" value="30" min="1"></div><div class="field full"><label>EXERCICES</label><div class="exercise-picker">${exercises.map(x=>`<div class="picker-row"><span>${x.name}</span><input class="sets" data-id="${x.id}" type="number" min="0" value="${x.id===e.id?3:0}" placeholder="séries"><input class="reps" data-id="${x.id}" type="number" min="0" value="${x.id===e.id?10:0}" placeholder="rép."></div>`).join("")}</div></div></div><div class="modal-actions"><button class="ghost-btn" onclick="closeModal()">Annuler</button><button class="primary-btn" onclick="saveWorkout()">Enregistrer la séance</button></div>`)}
-function saveWorkout(){let items=[];$$(".sets").forEach(s=>{let sets=+s.value,reps=+document.querySelector(`.reps[data-id="${s.dataset.id}"]`).value;if(sets>0&&reps>0)items.push({exercise:s.dataset.id,sets,reps})});if(!items.length){toast("Ajoute au moins un exercice");return}let points=items.reduce((sum,i)=>{let e=exercises.find(e=>e.id===i.exercise);return sum+e.points*i.sets*i.reps},0);state.workouts.push({id:Date.now(),user:state.user,date:$("#w-date").value,duration:+$("#w-duration").value||0,items,points});save();closeModal();toast(`Séance enregistrée · +${points} pts`);render()}
-function openQuick(){openModal(`<div class="modal-header"><h2>Activité rapide</h2><button class="close" onclick="closeModal()">×</button></div><div class="quick-grid">${["Marche","Vélo","Mobilité","Autre"].map(x=>`<button class="quick-option" onclick="saveQuick('${x}')"><strong>${x}</strong><span>Enregistrer une activité sans détailler les exercices</span></button>`).join("")}</div><div class="field" style="margin-top:14px"><label>DURÉE (MINUTES)</label><input id="q-duration" type="number" value="20" min="1"></div>`)}
-function saveQuick(type){let d=+$("#q-duration").value||20, rate=type==="Vélo"?5:type==="Marche"?5:3;state.quick.push({id:Date.now(),user:state.user,date:"2026-10-04",type,duration:d,points:Math.round(d*rate)});save();closeModal();toast(`Activité enregistrée · +${Math.round(d*rate)} pts`);render()}
-function openModal(html){$("#modal-content").innerHTML=html;$("#modal").classList.add("open")}
-function closeModal(){$("#modal").classList.remove("open")}
-function toast(t){let x=document.createElement("div");x.className="toast";x.textContent=t;document.body.appendChild(x);setTimeout(()=>x.remove(),2400)}
-$$(".nav-item").forEach(b=>b.onclick=()=>{$$(".nav-item").forEach(x=>x.classList.remove("active"));b.classList.add("active");render()});
-$$(".person-switch").forEach(b=>b.onclick=()=>{state.user=b.dataset.user;$$(".person-switch").forEach(x=>x.classList.toggle("active",x===b));render()});
-$("#add-workout").onclick=()=>openWorkout();
-$("#quick-add").onclick=openQuick;
-$("#modal").onclick=e=>{if(e.target.id==="modal")closeModal()};
+
+// Vue Calendrier
+function renderCalendar() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const offset = (firstDay.getDay() + 6) % 7;
+
+  let daysHtml = "";
+  for (let i = 0; i < offset; i++) {
+    daysHtml += `<div class="day-cell muted"></div>`;
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const dayLogs = state.workouts.filter(w => w.date === dateStr);
+    const hasJulien = dayLogs.some(w => w.user === "julien");
+    const hasArina = dayLogs.some(w => w.user === "arina");
+    const isToday = d === now.getDate();
+
+    daysHtml += `
+      <div class="day-cell ${isToday ? 'today' : ''}" onclick="showDayDetails('${dateStr}')">
+        <span class="day-num">${d}</span>
+        <div class="dots-wrapper">
+          ${hasJulien ? '<div class="dot dot-julien"></div>' : ''}
+          ${hasArina ? '<div class="dot dot-arina"></div>' : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+
+  $("#content").innerHTML = `
+    <div class="card">
+      <h3 class="card-title">${monthNames[month]} ${year}</h3>
+      <div class="calendar-grid">
+        ${["L", "M", "M", "J", "V", "S", "D"].map(h => `<div class="day-header">${h}</div>`).join("")}
+        ${daysHtml}
+      </div>
+    </div>
+  `;
+}
+
+function showDayDetails(dateStr) {
+  const logs = state.workouts.filter(w => w.date === dateStr);
+  openModal(`
+    <div class="modal-header">
+      <h3>Activités du ${dateStr}</h3>
+      <button class="close-btn" onclick="closeModal()">×</button>
+    </div>
+    ${logs.length === 0 
+      ? `<p class="exercise-desc">Pas de séance enregistrée ce jour-là.</p>`
+      : logs.map(w => `
+          <div style="padding:8px 0; border-bottom:1px solid var(--line);">
+            <strong>${getUserName(w.user)}</strong> (+${w.points} pts)
+            <div class="exercise-desc">${w.items.map(i => `${i.sets}x ${i.reps} ${(state.exercises.find(e => e.id === i.exercise)||{}).name || ''}`).join(", ")}</div>
+          </div>
+        `).join("")
+    }
+  `);
+}
+
+// Vue Exercices
+function renderExercises() {
+  $("#content").innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0;">Bibliothèque (${state.exercises.length})</h3>
+      <button class="btn-primary" onclick="openAddExerciseModal()">+ Créer un exercice</button>
+    </div>
+
+    <div class="exercise-list">
+      ${state.exercises.map(e => `
+        <div class="card exercise-card">
+          <div class="exercise-header">
+            <h4 class="exercise-name">${e.name}</h4>
+            <span class="tag">${e.category}</span>
+          </div>
+          <p class="exercise-desc">${e.description}</p>
+          <div style="font-size:11px; font-weight:700; color:var(--julien);">${e.points} pts / série</div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function openAddExerciseModal() {
+  openModal(`
+    <div class="modal-header">
+      <h3>Nouvel exercice</h3>
+      <button class="close-btn" onclick="closeModal()">×</button>
+    </div>
+    <div class="field">
+      <label>NOM DE L'EXERCICE</label>
+      <input id="ex-name" type="text" placeholder="ex: Dips, Burpees...">
+    </div>
+    <div class="field">
+      <label>CATÉGORIE</label>
+      <input id="ex-cat" type="text" placeholder="ex: Haut du corps, Cardio...">
+    </div>
+    <div class="field">
+      <label>DESCRIPTION / CONSIGNES</label>
+      <textarea id="ex-desc" rows="2" placeholder="Description pour bien réaliser le mouvement..."></textarea>
+    </div>
+    <div class="field">
+      <label>POINTS PAR SÉRIE</label>
+      <input id="ex-pts" type="number" value="10" min="1">
+    </div>
+    <button class="btn-primary" style="width:100%; margin-top:8px;" onclick="saveCustomExercise()">Ajouter l'exercice</button>
+  `);
+}
+
+function saveCustomExercise() {
+  const name = $("#ex-name").value.trim();
+  const category = $("#ex-cat").value.trim() || "Général";
+  const description = $("#ex-desc").value.trim() || "Aucune description.";
+  const points = parseInt($("#ex-pts").value) || 10;
+
+  if (!name) {
+    toast("Merci de saisir un nom d'exercice");
+    return;
+  }
+
+  const newEx = { id: `exo_${Date.now()}`, name, category, description, points };
+  state.exercises.push(newEx);
+  save();
+  closeModal();
+  toast("Exercice ajouté !");
+  renderExercises();
+}
+
+// Vue Défis
+function renderChallenges() {
+  const ptsJ = getPoints("julien");
+  const ptsA = getPoints("arina");
+
+  $("#content").innerHTML = `
+    <div class="card">
+      <h3 class="card-title">Défis & Compétition</h3>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="stat-box">
+          <strong>Premier pas</strong>
+          <p class="exercise-desc">Enregistrer au moins 1 séance.</p>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:${(getWorkoutsCount(state.user) > 0) ? 100 : 0}%"></div>
+          </div>
+        </div>
+        <div class="stat-box">
+          <strong>Objectif Duo : 500 pts</strong>
+          <p class="exercise-desc">Atteindre 500 points au total à deux.</p>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:${Math.min(100, (ptsJ + ptsA) / 500 * 100)}%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Vue Profil
+function renderProfile() {
+  const name = getUserName(state.user);
+  $("#content").innerHTML = `
+    <div class="card" style="text-align:center;">
+      <div class="avatar ${state.user}" style="width:50px; height:50px; font-size:20px; margin:0 auto 10px;">${name[0]}</div>
+      <h2 style="margin:0;">${name}</h2>
+      <p class="exercise-desc" style="margin-top:4px;">Utilisateur connecté</p>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title">Données brutes JSON</h3>
+      <button class="btn-ghost" style="width:100%;" onclick="openJsonModal()">Afficher / Modifier le JSON</button>
+    </div>
+  `;
+}
+
+// Modale de saisie de séance
+function openAddWorkoutModal() {
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  openModal(`
+    <div class="modal-header">
+      <h3>Saisir une séance (${getUserName(state.user)})</h3>
+      <button class="close-btn" onclick="closeModal()">×</button>
+    </div>
+    <div class="field">
+      <label>DATE</label>
+      <input id="w-date" type="date" value="${todayStr}">
+    </div>
+    <div class="field">
+      <label>SÉLECTION DE SÉRIES</label>
+      <div style="max-height:220px; overflow-y:auto;">
+        ${state.exercises.map(ex => `
+          <div class="exercise-picker-row">
+            <div>
+              <strong style="font-size:12px;">${ex.name}</strong>
+              <div class="exercise-desc">${ex.points} pts/série</div>
+            </div>
+            <input type="number" class="w-sets" data-id="${ex.id}" min="0" placeholder="Séries">
+            <input type="number" class="w-reps" data-id="${ex.id}" min="0" placeholder="Rép.">
+          </div>
+        `).join("")}
+      </div>
+    </div>
+    <button class="btn-primary" style="width:100%; margin-top:12px;" onclick="saveWorkout()">Valider la séance</button>
+  `);
+}
+
+function saveWorkout() {
+  const date = $("#w-date").value;   const items = [];   let totalPoints = 0;    $$(".w-sets").forEach(sInput => {
+    const sets = parseInt(sInput.value) || 0;
+    const exId = sInput.dataset.id;
+    const repsInput = document.querySelector(`.w-reps[data-id="${exId}"]`);
+    const reps = parseInt(repsInput.value) || 0;
+
+    if (sets > 0 && reps > 0) {
+      const ex = state.exercises.find(e => e.id === exId);
+      const pts = (ex ? ex.points : 10) * sets;
+      items.push({ exercise: exId, sets, reps });
+      totalPoints += pts;
+    }
+  });
+
+  if (items.length === 0) {
+    toast("Sélectionne au moins un exercice avec séries et répétitions.");
+    return;
+  }
+
+  state.workouts.push({
+    id: `w_${Date.now()}`,
+    user: state.user,
+    date,
+    items,
+    points: totalPoints
+  });
+
+  save();
+  closeModal();
+  toast(`Séance enregistrée ! +${totalPoints} pts`);
+  render();
+}
+
+// Modale JSON / Supabase
+function openJsonModal() {
+  openModal(`
+    <div class="modal-header">
+      <h3>Données JSON</h3>
+      <button class="close-btn" onclick="closeModal()">×</button>
+    </div>
+    <div class="field">
+      <label>STRUCTURE DES DONNÉES (ÉDITABLE)</label>
+      <textarea id="json-editor" rows="12">${JSON.stringify(state, null, 2)}</textarea>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn-ghost" style="flex:1;" onclick="navigator.clipboard.writeText($('#json-editor').value); toast('Copié dans le presse-papier !');">Copier</button>
+      <button class="btn-primary" style="flex:1;" onclick="importJson()">Sauvegarder</button>
+    </div>
+  `);
+}
+
+function importJson() {
+  try {
+    const parsed = JSON.parse($("#json-editor").value);
+    state = parsed;
+    save();
+    closeModal();
+    toast("Données mises à jour avec succès !");
+    render();
+  } catch (err) {
+    toast("Erreur de format JSON synthaxiquement invalide.");
+  }
+}
+
+// Initialisation
 render();

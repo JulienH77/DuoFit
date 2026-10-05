@@ -1,42 +1,61 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Duo Fit</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DuoFit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="app">
-  <aside class="sidebar">
-    <div class="brand"><div class="brand-mark">DF</div><div><strong>DUO FIT</strong><span>Votre espace sportif</span></div></div>
-    <nav>
-      <button class="nav-item active" data-page="dashboard"><span>⌂</span>Dashboard</button>
-      <button class="nav-item" data-page="calendar"><span>▦</span>Calendrier</button>
-      <button class="nav-item" data-page="exercises"><span>◈</span>Exercices</button>
-      <button class="nav-item" data-page="challenges"><span>◇</span>Défis</button>
-      <button class="nav-item" data-page="profile"><span>◎</span>Profil</button>
-    </nav>
-    <div class="sidebar-bottom">
-      <button class="person-switch active" data-user="julien"><i class="avatar julien">J</i><span>Julien</span></button>
-      <button class="person-switch" data-user="partner"><i class="avatar partner">E</i><span>Elle</span></button>
-    </div>
-  </aside>
-  <main class="main">
+  <div id="app">
     <header class="topbar">
-      <div><p class="eyebrow" id="page-eyebrow">DIMANCHE 4 OCTOBRE 2026</p><h1 id="page-title">Bonjour Julien</h1></div>
-      <div class="top-actions"><button class="ghost-btn" id="quick-add">+ Activité rapide</button><button class="primary-btn" id="add-workout">+ Nouvelle séance</button></div>
+      <div class="user-selector">
+        <button class="user-btn active" data-user="julien">
+          <span class="avatar julien">J</span> Julien
+        </button>
+        <button class="user-btn" data-user="arina">
+          <span class="avatar arina">A</span> Arina
+        </button>
+      </div>
+      <div class="header-actions">
+        <button class="btn-ghost" id="json-btn">JSON</button>
+        <button class="btn-primary" id="add-workout-btn">+ Séance</button>
+      </div>
     </header>
-    <div id="content"></div>
-  </main>
-</div>
 
-<div class="modal-backdrop" id="modal">
-  <div class="modal" id="modal-content"></div>
-</div>
-<script src="app.js"></script>
+    <main class="main-content" id="content"></main>
+
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-page="dashboard">
+        <span class="icon">⌂</span>
+        <span class="label">Accueil</span>
+      </button>
+      <button class="nav-item" data-page="calendar">
+        <span class="icon">▦</span>
+        <span class="label">Calendrier</span>
+      </button>
+      <button class="nav-item" data-page="exercises">
+        <span class="icon">◈</span>
+        <span class="label">Exercices</span>
+      </button>
+      <button class="nav-item" data-page="challenges">
+        <span class="icon">◇</span>
+        <span class="label">Défis</span>
+      </button>
+      <button class="nav-item" data-page="profile">
+        <span class="icon">◎</span>
+        <span class="label">Profil</span>
+      </button>
+    </nav>
+  </div>
+
+  <div class="modal-backdrop" id="modal">
+    <div class="modal" id="modal-content"></div>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
