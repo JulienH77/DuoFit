@@ -1,418 +1,47 @@
-const KEY = "duofit_data_v1";
-
-const defaultState = {
-  user: "julien",
-  users: [
-    { id: "julien", name: "Julien" },
-    { id: "arina", name: "Arina" }
-  ],
-  exercises: [
-    { id: "exo_1", name: "Pompes", category: "Haut du corps", description: "Mains écartées largeur d'épaules, corps gainé.", points: 10 },
-    { id: "exo_2", name: "Squats", category: "Bas du corps", description: "Pieds largeur de bassin, descendre cuisses parallèles au sol.", points: 10 },
-    { id: "exo_3", name: "Fentes", category: "Bas du corps", description: "Buste droit, fléchir le genou arrière vers le sol.", points: 12 },
-    { id: "exo_4", name: "Gainage", category: "Abdos", description: "Appui sur les avant-bras, corps droit sans creuser le dos.", points: 8 },
-    { id: "exo_5", name: "Cardio / Vélo", category: "Cardio", description: "Activité d'endurance libre.", points: 5 }
-  ],
-  workouts: []
-};
-
-let state = JSON.parse(localStorage.getItem(KEY)) || defaultState;
-
-function save() {
-  localStorage.setItem(KEY, JSON.stringify(state));
-}
-
-const $ = s => document.querySelector(s); const $$ = s => [...document.querySelectorAll(s)];
-
-const getUserName = id => (id === "julien" ? "Julien" : "Arina");
-
-function toast(msg) {
-  const el = document.createElement("div");
-  el.className = "toast";
-  el.textContent = msg;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 2200);
-}
-
-function openModal(html) {
-  $("#modal-content").innerHTML = html;
-  $("#modal").classList.add("open");
-}
-
-function closeModal() {
-  $("#modal").classList.remove("open");
-}
-
-// Navigation & utilisateur
-$$(".user-btn").forEach(btn => {   btn.onclick = () => {     state.user = btn.dataset.user;     $$
-(".user-btn").forEach(b => b.classList.toggle("active", b === btn));
-    render();
-  };
-});
-
-$$(".nav-item").forEach(btn => {   btn.onclick = () => {     $$
-(".nav-item").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    render();
-  };
-});
-
-$("#add-workout-btn").onclick = () => openAddWorkoutModal();
-$("#json-btn").onclick = () => openJsonModal();
-$("#modal").onclick = e => { if (e.target.id === "modal") closeModal(); };
-
-function render() {
-  const page = $(".nav-item.active")?.dataset.page || "dashboard";
-  const views = {
-    dashboard: renderDashboard,
-    calendar: renderCalendar,
-    exercises: renderExercises,
-    challenges: renderChallenges,
-    profile: renderProfile
-  };
-  views[page]();
-}
-
-// Calculs
-function getPoints(userId) {
-  return state.workouts
-    .filter(w => w.user === userId)
-    .reduce((sum, w) => sum + (w.points || 0), 0);
-}
-
-function getWorkoutsCount(userId) {
-  return state.workouts.filter(w => w.user === userId).length;
-}
-
-// Vue Dashboard
-function renderDashboard() {
-  const ptsJulien = getPoints("julien");
-  const ptsArina = getPoints("arina");
-  const total = ptsJulien + ptsArina;
-
-  $("#content").innerHTML = `
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span class="stat-label">COMPÉTITION / COOPÉRATION</span>
-        <span style="font-weight:800; font-size:12px;">${total} pts cumulés</span>
-      </div>
-      <div style="margin-top:12px;">
-        <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700; margin-bottom:4px;">
-          <span>Julien (${ptsJulien} pts)</span>
-          <span>Arina (${ptsArina} pts)</span>
-        </div>
-        <div class="progress-bar" style="display:flex;">
-          <div class="progress-fill" style="width:${total ? (ptsJulien / total * 100) : 50}%"></div>
-          <div class="progress-fill arina" style="width:${total ? (ptsArina / total * 100) : 50}%"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="stat-grid">
-      <div class="stat-box">
-        <div class="stat-label">Mes séances</div>
-        <div class="stat-val">${getWorkoutsCount(state.user)}</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-label">Mes points</div>
-        <div class="stat-val">${getPoints(state.user)}</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3 class="card-title">Dernières séances</h3>
-      ${state.workouts.length === 0 
-        ? `<p class="exercise-desc" style="text-align:center; padding:12px 0;">Aucune séance enregistrée pour le moment.</p>` 
-        : state.workouts.slice(-5).reverse().map(w => `
-            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line);">
-              <div>
-                <strong>${getUserName(w.user)}</strong> · <span class="exercise-desc">${w.date}</span>
-                <div class="exercise-desc">${w.items.map(i => {
-                  const ex = state.exercises.find(e => e.id === i.exercise);
-                  return ex ? ex.name : "Exercice";
-                }).join(", ")}</div>
-              </div>
-              <strong style="color:var(--julien);">+${w.points} pts</strong>
-            </div>
-          `).join("")
-      }
-    </div>
-  `;
-}
-
-// Vue Calendrier
-function renderCalendar() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const offset = (firstDay.getDay() + 6) % 7;
-
-  let daysHtml = "";
-  for (let i = 0; i < offset; i++) {
-    daysHtml += `<div class="day-cell muted"></div>`;
-  }
-
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    const dayLogs = state.workouts.filter(w => w.date === dateStr);
-    const hasJulien = dayLogs.some(w => w.user === "julien");
-    const hasArina = dayLogs.some(w => w.user === "arina");
-    const isToday = d === now.getDate();
-
-    daysHtml += `
-      <div class="day-cell ${isToday ? 'today' : ''}" onclick="showDayDetails('${dateStr}')">
-        <span class="day-num">${d}</span>
-        <div class="dots-wrapper">
-          ${hasJulien ? '<div class="dot dot-julien"></div>' : ''}
-          ${hasArina ? '<div class="dot dot-arina"></div>' : ''}
-        </div>
-      </div>
-    `;
-  }
-
-  const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
-
-  $("#content").innerHTML = `
-    <div class="card">
-      <h3 class="card-title">${monthNames[month]} ${year}</h3>
-      <div class="calendar-grid">
-        ${["L", "M", "M", "J", "V", "S", "D"].map(h => `<div class="day-header">${h}</div>`).join("")}
-        ${daysHtml}
-      </div>
-    </div>
-  `;
-}
-
-function showDayDetails(dateStr) {
-  const logs = state.workouts.filter(w => w.date === dateStr);
-  openModal(`
-    <div class="modal-header">
-      <h3>Activités du ${dateStr}</h3>
-      <button class="close-btn" onclick="closeModal()">×</button>
-    </div>
-    ${logs.length === 0 
-      ? `<p class="exercise-desc">Pas de séance enregistrée ce jour-là.</p>`
-      : logs.map(w => `
-          <div style="padding:8px 0; border-bottom:1px solid var(--line);">
-            <strong>${getUserName(w.user)}</strong> (+${w.points} pts)
-            <div class="exercise-desc">${w.items.map(i => `${i.sets}x ${i.reps} ${(state.exercises.find(e => e.id === i.exercise)||{}).name || ''}`).join(", ")}</div>
-          </div>
-        `).join("")
-    }
-  `);
-}
-
-// Vue Exercices
-function renderExercises() {
-  $("#content").innerHTML = `
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <h3 style="margin:0;">Bibliothèque (${state.exercises.length})</h3>
-      <button class="btn-primary" onclick="openAddExerciseModal()">+ Créer un exercice</button>
-    </div>
-
-    <div class="exercise-list">
-      ${state.exercises.map(e => `
-        <div class="card exercise-card">
-          <div class="exercise-header">
-            <h4 class="exercise-name">${e.name}</h4>
-            <span class="tag">${e.category}</span>
-          </div>
-          <p class="exercise-desc">${e.description}</p>
-          <div style="font-size:11px; font-weight:700; color:var(--julien);">${e.points} pts / série</div>
-        </div>
-      `).join("")}
-    </div>
-  `;
-}
-
-function openAddExerciseModal() {
-  openModal(`
-    <div class="modal-header">
-      <h3>Nouvel exercice</h3>
-      <button class="close-btn" onclick="closeModal()">×</button>
-    </div>
-    <div class="field">
-      <label>NOM DE L'EXERCICE</label>
-      <input id="ex-name" type="text" placeholder="ex: Dips, Burpees...">
-    </div>
-    <div class="field">
-      <label>CATÉGORIE</label>
-      <input id="ex-cat" type="text" placeholder="ex: Haut du corps, Cardio...">
-    </div>
-    <div class="field">
-      <label>DESCRIPTION / CONSIGNES</label>
-      <textarea id="ex-desc" rows="2" placeholder="Description pour bien réaliser le mouvement..."></textarea>
-    </div>
-    <div class="field">
-      <label>POINTS PAR SÉRIE</label>
-      <input id="ex-pts" type="number" value="10" min="1">
-    </div>
-    <button class="btn-primary" style="width:100%; margin-top:8px;" onclick="saveCustomExercise()">Ajouter l'exercice</button>
-  `);
-}
-
-function saveCustomExercise() {
-  const name = $("#ex-name").value.trim();
-  const category = $("#ex-cat").value.trim() || "Général";
-  const description = $("#ex-desc").value.trim() || "Aucune description.";
-  const points = parseInt($("#ex-pts").value) || 10;
-
-  if (!name) {
-    toast("Merci de saisir un nom d'exercice");
-    return;
-  }
-
-  const newEx = { id: `exo_${Date.now()}`, name, category, description, points };
-  state.exercises.push(newEx);
-  save();
-  closeModal();
-  toast("Exercice ajouté !");
-  renderExercises();
-}
-
-// Vue Défis
-function renderChallenges() {
-  const ptsJ = getPoints("julien");
-  const ptsA = getPoints("arina");
-
-  $("#content").innerHTML = `
-    <div class="card">
-      <h3 class="card-title">Défis & Compétition</h3>
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        <div class="stat-box">
-          <strong>Premier pas</strong>
-          <p class="exercise-desc">Enregistrer au moins 1 séance.</p>
-          <div class="progress-bar">
-            <div class="progress-fill" style="width:${(getWorkoutsCount(state.user) > 0) ? 100 : 0}%"></div>
-          </div>
-        </div>
-        <div class="stat-box">
-          <strong>Objectif Duo : 500 pts</strong>
-          <p class="exercise-desc">Atteindre 500 points au total à deux.</p>
-          <div class="progress-bar">
-            <div class="progress-fill" style="width:${Math.min(100, (ptsJ + ptsA) / 500 * 100)}%"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-// Vue Profil
-function renderProfile() {
-  const name = getUserName(state.user);
-  $("#content").innerHTML = `
-    <div class="card" style="text-align:center;">
-      <div class="avatar ${state.user}" style="width:50px; height:50px; font-size:20px; margin:0 auto 10px;">${name[0]}</div>
-      <h2 style="margin:0;">${name}</h2>
-      <p class="exercise-desc" style="margin-top:4px;">Utilisateur connecté</p>
-    </div>
-
-    <div class="card">
-      <h3 class="card-title">Données brutes JSON</h3>
-      <button class="btn-ghost" style="width:100%;" onclick="openJsonModal()">Afficher / Modifier le JSON</button>
-    </div>
-  `;
-}
-
-// Modale de saisie de séance
-function openAddWorkoutModal() {
-  const todayStr = new Date().toISOString().split('T')[0];
-
-  openModal(`
-    <div class="modal-header">
-      <h3>Saisir une séance (${getUserName(state.user)})</h3>
-      <button class="close-btn" onclick="closeModal()">×</button>
-    </div>
-    <div class="field">
-      <label>DATE</label>
-      <input id="w-date" type="date" value="${todayStr}">
-    </div>
-    <div class="field">
-      <label>SÉLECTION DE SÉRIES</label>
-      <div style="max-height:220px; overflow-y:auto;">
-        ${state.exercises.map(ex => `
-          <div class="exercise-picker-row">
-            <div>
-              <strong style="font-size:12px;">${ex.name}</strong>
-              <div class="exercise-desc">${ex.points} pts/série</div>
-            </div>
-            <input type="number" class="w-sets" data-id="${ex.id}" min="0" placeholder="Séries">
-            <input type="number" class="w-reps" data-id="${ex.id}" min="0" placeholder="Rép.">
-          </div>
-        `).join("")}
-      </div>
-    </div>
-    <button class="btn-primary" style="width:100%; margin-top:12px;" onclick="saveWorkout()">Valider la séance</button>
-  `);
-}
-
-function saveWorkout() {
-  const date = $("#w-date").value;   const items = [];   let totalPoints = 0;    $$(".w-sets").forEach(sInput => {
-    const sets = parseInt(sInput.value) || 0;
-    const exId = sInput.dataset.id;
-    const repsInput = document.querySelector(`.w-reps[data-id="${exId}"]`);
-    const reps = parseInt(repsInput.value) || 0;
-
-    if (sets > 0 && reps > 0) {
-      const ex = state.exercises.find(e => e.id === exId);
-      const pts = (ex ? ex.points : 10) * sets;
-      items.push({ exercise: exId, sets, reps });
-      totalPoints += pts;
-    }
-  });
-
-  if (items.length === 0) {
-    toast("Sélectionne au moins un exercice avec séries et répétitions.");
-    return;
-  }
-
-  state.workouts.push({
-    id: `w_${Date.now()}`,
-    user: state.user,
-    date,
-    items,
-    points: totalPoints
-  });
-
-  save();
-  closeModal();
-  toast(`Séance enregistrée ! +${totalPoints} pts`);
-  render();
-}
-
-// Modale JSON / Supabase
-function openJsonModal() {
-  openModal(`
-    <div class="modal-header">
-      <h3>Données JSON</h3>
-      <button class="close-btn" onclick="closeModal()">×</button>
-    </div>
-    <div class="field">
-      <label>STRUCTURE DES DONNÉES (ÉDITABLE)</label>
-      <textarea id="json-editor" rows="12">${JSON.stringify(state, null, 2)}</textarea>
-    </div>
-    <div style="display:flex; gap:8px;">
-      <button class="btn-ghost" style="flex:1;" onclick="navigator.clipboard.writeText($('#json-editor').value); toast('Copié dans le presse-papier !');">Copier</button>
-      <button class="btn-primary" style="flex:1;" onclick="importJson()">Sauvegarder</button>
-    </div>
-  `);
-}
-
-function importJson() {
-  try {
-    const parsed = JSON.parse($("#json-editor").value);
-    state = parsed;
-    save();
-    closeModal();
-    toast("Données mises à jour avec succès !");
-    render();
-  } catch (err) {
-    toast("Erreur de format JSON synthaxiquement invalide.");
-  }
-}
-
-// Initialisation
-render();
+const $=(s,r=document)=>r.querySelector(s);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+const dateLabel=d=>new Date(d+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
+const icons={home:'<path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/>',calendar:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18"/>',activities:'<path d="m3 9 4-4m-4 9 11-11m-8 15 12-12m-3 14 5-5M5 7l12 12M7 5l12 12"/>',progress:'<path d="M4 20h16M6 16v-4m6 4V7m6 9V3"/>',challenges:'<path d="m12 3 3 6 6 1-4.5 4.5 1 6.5-5.5-3-5.5 3 1-6.5L3 10l6-1Z"/>'};
+const svg=n=>`<svg viewBox="0 0 24 24" aria-hidden="true">${icons[n]}</svg>`;
+let config={...window.DUOFIT_CONFIG,...JSON.parse(localStorage.getItem('duofit.config')||'{}')};
+let auth=JSON.parse(sessionStorage.getItem('duofit.auth')||'null'),duo=null,records=[],base=[],filter='Tout',search='',month=new Date().getMonth(),year=new Date().getFullYear(),selected=today(),route='home',busy=false;
+const sessions=()=>records.filter(r=>r.kind==='session').map(r=>({...r.payload,id:r.id}));
+const activities=()=>[...base,...records.filter(r=>r.kind==='activity').map(r=>({...r.payload,id:r.id}))];
+const points=s=>10+Math.min(20,Math.floor(s.minutes/5)*2)+(s.person==='duo'?10:0);
+const belongs=(s,p)=>s.person===p||s.person==='duo';
+const score=p=>sessions().filter(s=>belongs(s,p)).reduce((n,s)=>n+points(s),0);
+const completed=(c,p)=>sessions().some(s=>s.date===today()&&belongs(s,p)&&c.test(s));
+const daily=()=>{const day=Math.floor(Date.parse(today()+'T12:00:00Z')/86400000);const rotating=[{id:'gentle',name:'Une pause pour bouger',desc:'3 minutes de mobilité ou d’étirements.',activity:'shoulders',test:s=>s.minutes>=3&&['Mobilité','Étirements'].includes(s.category)}, {id:'walk',name:'Prendre un peu l’air',desc:'5 minutes de marche à votre rythme.',activity:'walk',test:s=>s.activity==='walk'&&s.minutes>=5}, {id:'free',name:'Le petit rendez-vous',desc:'5 minutes de l’activité de votre choix.',activity:'stretch',test:s=>s.minutes>=5}];return [rotating[day%3],{id:'duo',name:'Mieux à deux',desc:'Une séance ensemble, même 3 minutes.',activity:'stretch',test:s=>s.person==='duo'&&s.minutes>=3}]};
+// Récompenses calculées depuis les séances : un défi ne rapporte qu’une fois par jour et par personne.
+const bonus=p=>{const days=[...new Set(sessions().map(s=>s.date))];return days.reduce((sum,d)=>{const day=Math.floor(Date.parse(d+'T12:00:00Z')/86400000);const tests=[s=>s.minutes>=3&&['Mobilité','Étirements'].includes(s.category),s=>s.activity==='walk'&&s.minutes>=5,s=>s.minutes>=5];const list=sessions().filter(s=>s.date===d&&belongs(s,p));return sum+(list.some(tests[day%3])?5:0)+(list.some(s=>s.person==='duo'&&s.minutes>=3)?5:0)},0)};
+const xp=p=>score(p)+bonus(p);
+const stats=p=>{const list=sessions().filter(s=>!p||belongs(s,p));return {count:list.length,minutes:list.reduce((n,s)=>n+s.minutes,0),days:new Set(list.map(s=>s.date)).size}};
+const toast=t=>{const el=$('#toast');el.textContent=t;el.style.display='block';clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.style.display='none',4500)};
+function connection(){const online=!!(auth&&duo);$('#connection').className='connection'+(online?' online':'');$('#connection').textContent=online?'Duo connecté · séances enregistrées sur Supabase':auth?'Connecté · créez ou rejoignez votre duo':'Mode découverte · données temporaires, connectez Supabase pour sauvegarder';}
+function render(){connection();$('#nav').innerHTML=[['home','Accueil'],['calendar','Calendrier'],['activities','Activités'],['challenges','Défis'],['progress','Progrès']].map(([r,n])=>`<a href="#${r}" class="${route===r?'active':''}" ${route===r?'aria-current="page"':''}>${svg(r)}${n}</a>`).join('');({home,calendar,activities:catalog,challenges,progress}[route]||home)();}
+function personCard(p,name){const st=stats(p),x=xp(p),lv=Math.floor(x/100)+1;return `<article class="card"><div class="person"><span class="avatar ${p}">${name[0]}</span><div><h3>${name}</h3><small>Niveau ${lv} · ${lv===1?'On se lance':'On prend le rythme'}</small></div></div><div class="number">${x}<small>points</small></div><div class="progress ${p==='arina'?'green':''}"><span style="width:${x%100}%"></span></div><div class="hint">${100-x%100} points avant le niveau ${lv+1}</div><div class="hint" style="margin-top:14px">${st.count} séance${st.count>1?'s':''} · ${st.minutes} min en mouvement</div></article>`}
+function intro(k,title,desc){return `<div class="intro"><div class="eyebrow">${k}</div><h1>${title}</h1><p>${desc}</p></div>`}
+function challengeCard(c){const j=completed(c,'julien'),a=completed(c,'arina');return `<article class="card challenge"><div class="challenge-symbol">${c.id==='duo'?'2':'+'}</div><div style="flex:1"><h3>${esc(c.name)}</h3><p>${esc(c.desc)}</p><div class="hint">Julien : ${j?'fait':'à faire'} · Arina : ${a?'fait':'à faire'}</div></div><button class="text-button" data-challenge="${c.id}">${j&&a?'Accompli':'+5 pts'}</button></article>`}
+function home(){$('#main').innerHTML=intro('Votre espace à deux','Un petit pas.<br>À deux, c’est mieux.','Un peu de mouvement, beaucoup de régularité. À votre rythme, ensemble ou chacun de votre côté.')+`<section class="hero"><div class="hero-top"><span class="pill">LE RENDEZ-VOUS DU JOUR</span><span class="hint">${new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}</span></div><h2>Et si on bougeait<br>5 minutes ?</h2><p>Une marche, quelques étirements…<br>Chaque petite séance compte.</p><button class="primary" data-log>Ajouter une séance <span aria-hidden="true">↗</span></button><div class="duo-art" aria-hidden="true"><div class="ring"></div><div class="ring two"></div></div></section><div class="home-layout"><section><div class="row section-title"><h2>Votre progression</h2><span class="hint">Une équipe, deux rythmes</span></div><div class="grid">${personCard('julien','Julien')}${personCard('arina','Arina')}</div></section><section><div class="row section-title"><h2>Les petits défis</h2><a class="text-button" href="#challenges">Tout voir ↗</a></div>${daily().map(challengeCard).join('')}</section></div><div class="row section-title"><h2>Les dernières séances</h2><a class="text-button" href="#calendar">Calendrier ↗</a></div>${sessionList(sessions().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3))}`;bind();}
+function sessionList(list){return list.length?list.map(s=>`<article class="card session"><span class="avatar ${s.person}">${s.person==='duo'?'J+A':s.person==='julien'?'J':'A'}</span><div class="info"><h3>${esc(s.name)}</h3><p>${s.person==='duo'?'Julien & Arina':s.person==='julien'?'Julien':'Arina'} · ${s.minutes} min · ${dateLabel(s.date)}</p>${s.note?`<p>${esc(s.note)}</p>`:''}</div><span class="badge">+${points(s)} pts${s.person==='duo'?'/pers.':''}</span><button class="close" data-delete="${s.id}" aria-label="Supprimer cette séance">×</button></article>`).join(''):`<div class="empty"><strong>Le début de votre histoire sportive</strong>Aucune séance ici pour le moment.<br>Votre première séance apparaîtra ici.</div>`;}
+function calendar(){const first=new Date(year,month,1),offset=(first.getDay()+6)%7,days=new Date(year,month+1,0).getDate();let cells='<div class="weekday">L</div><div class="weekday">M</div><div class="weekday">M</div><div class="weekday">J</div><div class="weekday">V</div><div class="weekday">S</div><div class="weekday">D</div>'+'<div></div>'.repeat(offset);for(let d=1;d<=days;d++){const key=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,list=sessions().filter(s=>s.date===key),j=list.some(s=>belongs(s,'julien')),a=list.some(s=>belongs(s,'arina'));cells+=`<button class="day ${key===today()?'today':''} ${key===selected?'selected':''}" data-date="${key}" aria-label="${dateLabel(key)}, ${list.length} séance(s)">${d}<span class="dots">${j?'<i class="dot"></i>':''}${a?'<i class="dot a"></i>':''}</span>${list.some(s=>s.person==='duo')?'<small>ensemble</small>':''}</button>`;}
+$('#main').innerHTML=intro('Le calendrier','Vos jours en mouvement.','Julien en violet, Arina en vert. Touchez un jour pour voir qui a fait quoi.')+`<div class="split"><section class="card"><div class="row calendar-head"><button id="prev" aria-label="Mois précédent">←</button><h2>${first.toLocaleDateString('fr-FR',{month:'long',year:'numeric'})}</h2><button id="next" aria-label="Mois suivant">→</button></div><div class="calendar">${cells}</div><div class="legend"><span><i class="dot"></i>Julien</span><span><i class="dot a"></i>Arina</span><button class="text-button" id="today">Aujourd’hui</button></div></section><section><div class="row section-title" style="margin-top:0"><h2>${dateLabel(selected)}</h2><button class="text-button" data-log>+ Séance</button></div>${sessionList(sessions().filter(s=>s.date===selected))}</section></div>`;$('#prev').onclick=()=>changeMonth(-1);$('#next').onclick=()=>changeMonth(1);$('#today').onclick=()=>{const d=new Date();month=d.getMonth();year=d.getFullYear();selected=today();render()};document.querySelectorAll('[data-date]').forEach(el=>el.onclick=()=>{selected=el.dataset.date;render()});bind();}
+function changeMonth(n){const d=new Date(year,month+n,1);month=d.getMonth();year=d.getFullYear();render()}
+function catalog(){const cats=['Tout','Étirements','Mobilité','Cardio','Renforcement','Libre'];const list=activities().filter(a=>(filter==='Tout'||a.category===filter)&&a.name.toLowerCase().includes(search.toLowerCase()));$('#main').innerHTML=intro('Le catalogue','Trouvez votre mouvement.','Des activités simples pour commencer. Et vos propres idées pour la suite.')+`<button class="primary" id="custom">+ Créer une activité</button><input id="search" class="search" placeholder="Rechercher une activité…" aria-label="Rechercher une activité" value="${esc(search)}"><div class="toolbar">${cats.map(c=>`<button class="chip ${filter===c?'active':''}" data-filter="${c}">${c}</button>`).join('')}</div><div class="activities">${list.map(a=>`<article class="card activity"><div class="tag">${esc(a.category)}${base.some(b=>b.id===a.id)?'':' · ajoutée par vous'}</div><h3>${esc(a.name)}</h3><p>${esc(a.description)}</p><div class="row"><span class="hint">${a.minutes} min suggérées</span><button class="secondary" data-activity="${a.id}">Faire cette activité ↗</button></div></article>`).join('')||'<div class="empty">Aucune activité trouvée.</div>'}</div>`;$('#custom').onclick=custom;$('#search').oninput=e=>{search=e.target.value;const pos=e.target.selectionStart;catalog();$('#search').focus();$('#search').setSelectionRange(pos,pos)};document.querySelectorAll('[data-filter]').forEach(el=>el.onclick=()=>{filter=el.dataset.filter;catalog()});bind();}
+function challenges(){$('#main').innerHTML=intro('La petite motivation','Pas besoin d’en faire trop.','Deux défis par jour, sans obligation. Une petite occasion de bouger et de gagner quelques points.')+daily().map(challengeCard).join('')+`<div class="card" style="margin-top:24px"><h2>Chaque mouvement compte</h2><p class="muted" style="font-size:13px;margin-top:12px">Une séance = 10 points. Chaque tranche de 5 minutes ajoute 2 points, jusqu’à 20 points supplémentaires. Une séance à deux ajoute 10 points à chacun. Un défi accompli ajoute 5 points par personne, une seule fois par jour.</p><p class="hint" style="margin-top:12px">Les étirements rapportent autant que les autres activités. Les points encouragent la régularité : pas besoin d’allonger une séance pour progresser.</p></div>`;bind();}
+function progress(){const st=stats(),duos=sessions().filter(s=>s.person==='duo').length;const achievements=[['Le premier pas','Enregistrer votre première séance.',st.count>=1],['Le rendez-vous à deux','Faire une première séance ensemble.',duos>=1],['Une petite habitude','Bouger sur 3 jours différents.',st.days>=3],['La belle équipe','Faire 5 séances ensemble.',duos>=5]];const bars=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;bars.push({label:d.toLocaleDateString('fr-FR',{weekday:'short'}),n:sessions().filter(s=>s.date===key).reduce((n,s)=>n+s.minutes,0)})}const max=Math.max(...bars.map(b=>b.n),1);$('#main').innerHTML=intro('Votre progression','Ça commence par un peu.','Votre progression se construit séance après séance. Chacun son rythme, une aventure commune.')+`<div class="stats"><div class="card"><strong>${st.count}</strong><small>Séances enregistrées</small></div><div class="card"><strong>${st.minutes}</strong><small>Minutes d’activité*</small></div><div class="card"><strong>${duos}</strong><small>Séances ensemble</small></div></div><p class="hint">* Une séance ensemble est comptée une fois dans la durée commune.</p><div class="grid" style="margin-top:20px">${personCard('julien','Julien')}${personCard('arina','Arina')}</div><section class="card" style="margin-top:20px"><div class="row"><h2>Ces 7 derniers jours</h2><span class="hint">Minutes d’activité</span></div><div class="week-bars">${bars.map(b=>`<div class="week-bar"><span>${b.n}</span><div class="bar" style="height:${Math.max(3,b.n/max*75)}px"></div><span>${b.label}</span></div>`).join('')}</div></section><div class="section-title"><h2>Vos petites victoires</h2></div><div class="grid">${achievements.map(([n,d,on])=>`<article class="card achievement ${on?'unlocked':''}"><div class="eyebrow">${on?'Accompli':'À découvrir'}</div><h3>${n}</h3><small>${d}</small></article>`).join('')}</div>`;bind();}
+function modal(title,body){$('#dialog-body').innerHTML=`<div class="row"><h2>${title}</h2><button class="close" id="close-dialog" aria-label="Fermer">×</button></div>${body}`;$('#close-dialog').onclick=()=>$('#dialog').close();if(!$('#dialog').open)$('#dialog').showModal();}
+function log(activityId,person='julien',duration){const list=activities(),a=list.find(a=>a.id===activityId)||list[0];if(!a){toast('Le catalogue est indisponible. Rechargez la page.');return}modal('Une séance de plus.',`<p>Le plus important, c’est d’avoir bougé.</p>${!duo?'<p class="notice">Mode découverte : cette séance est temporaire. Connectez Supabase dans les réglages pour conserver et partager votre progression.</p>':''}<form id="log-form"><label>Qui a bougé ?<select name="person"><option value="julien" ${person==='julien'?'selected':''}>Julien</option><option value="arina" ${person==='arina'?'selected':''}>Arina</option><option value="duo" ${person==='duo'?'selected':''}>Julien & Arina · ensemble</option></select></label><label>Activité<select name="activity">${list.map(b=>`<option value="${b.id}" ${a.id===b.id?'selected':''}>${esc(b.name)}</option>`).join('')}</select></label><p id="activity-help" class="hint">${esc(a.description)}</p><div class="form-row"><label>Durée (minutes)<input name="minutes" type="number" min="1" max="240" step="1" value="${duration||a.minutes}" required></label><label>Date<input name="date" type="date" max="${today()}" value="${route==='calendar'?selected:today()}" required></label></div><label>Une petite note (facultatif)<textarea name="note" maxlength="500" placeholder="Comment s’est passée la séance ?"></textarea></label><div class="notice" id="estimate"></div><div id="form-error" class="error" role="alert"></div><button class="primary" type="submit">Enregistrer la séance</button></form>`);const f=$('#log-form');const estimate=()=>{const data=new FormData(f),b=list.find(a=>a.id===data.get('activity'));$('#activity-help').textContent=b.description;$('#estimate').textContent=`+${points({minutes:Number(data.get('minutes')),person:data.get('person')})} points ${data.get('person')==='duo'?'pour chacun · bonus duo inclus':'pour cette séance'}${daily().some(c=>c.test({minutes:Number(data.get('minutes')),person:data.get('person'),category:b.category,activity:b.id}))?' · défi possible : +5 points':''}`};f.oninput=estimate;f.elements.activity.onchange=()=>{f.elements.minutes.value=list.find(a=>a.id===f.elements.activity.value).minutes;estimate()};estimate();f.onsubmit=async e=>{e.preventDefault();const d=new FormData(f),b=list.find(a=>a.id===d.get('activity'));const s={activity:b.id,name:b.name,category:b.category,person:d.get('person'),minutes:Number(d.get('minutes')),date:d.get('date'),note:d.get('note').trim()};if(!Number.isInteger(s.minutes)||s.minutes<1||s.minutes>240||s.date>today()){return $('#form-error').textContent='Choisissez une durée de 1 à 240 minutes et une date passée ou aujourd’hui.'}await formAction(f,async()=>{await addRecord('session',s);$('#dialog').close();render();toast('Séance enregistrée. Un petit pas de plus !')})};}
+function custom(){modal('Votre propre activité.',`<p>Elle restera dans votre catalogue partagé.</p><form id="custom-form"><label>Nom<input name="name" maxlength="80" required placeholder="Ex. : badminton, routine du soir…"></label><label>Catégorie<select name="category">${['Étirements','Mobilité','Cardio','Renforcement','Libre'].map(c=>`<option>${c}</option>`).join('')}</select></label><label>Description<textarea name="description" required maxlength="1000" placeholder="Expliquez simplement comment faire cette activité."></textarea></label><label>Durée suggérée (minutes)<input name="minutes" type="number" min="1" max="240" value="5" required></label><div id="form-error" class="error" role="alert"></div><button class="primary">Ajouter au catalogue</button></form>`);$('#custom-form').onsubmit=async e=>{e.preventDefault();const f=e.target,d=new FormData(f);await formAction(f,async()=>{await addRecord('activity',{name:d.get('name').trim(),category:d.get('category'),description:d.get('description').trim(),minutes:Number(d.get('minutes'))});$('#dialog').close();filter='Tout';search='';render();toast('Activité ajoutée au catalogue.')})};}
+function bind(){document.querySelectorAll('[data-log]').forEach(el=>el.onclick=()=>log());document.querySelectorAll('[data-activity]').forEach(el=>el.onclick=()=>log(el.dataset.activity));document.querySelectorAll('[data-challenge]').forEach(el=>el.onclick=()=>{const c=daily().find(c=>c.id===el.dataset.challenge);log(c.activity,c.id==='duo'?'duo':'julien',c.id==='walk'||c.id==='free'?5:3)});document.querySelectorAll('[data-delete]').forEach(el=>el.onclick=()=>{modal('Supprimer cette séance ?',`<p>Les points et les défis seront recalculés.</p><div class="account-actions"><button class="danger" id="confirm-delete">Supprimer la séance</button><div class="error" id="delete-error"></div></div>`);$('#confirm-delete').onclick=async()=>{try{$('#confirm-delete').disabled=true;await removeRecord(el.dataset.delete);$('#dialog').close();render();toast('Séance supprimée.')}catch(e){$('#delete-error').textContent=e.message;$('#confirm-delete').disabled=false}}});}
+async function formAction(f,fn){if(busy)return;busy=true;const b=f.querySelector('button[type="submit"],button:last-child');b.disabled=true;try{await fn()}catch(e){const out=$('#form-error');if(out)out.textContent=e.message;else toast(e.message)}finally{busy=false;b.disabled=false}}
+async function api(path,options={}){if(!config.supabaseUrl||!config.supabaseKey)throw Error('Renseignez l’URL et la clé publique Supabase dans les réglages.');if(auth&&Date.now()/1000>auth.expires_at-60&&auth.refresh_token){const res=await fetch(config.supabaseUrl+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:config.supabaseKey,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:auth.refresh_token})});const d=await res.json();if(!res.ok)throw Error('Session expirée. Reconnectez-vous.');auth=d;sessionStorage.setItem('duofit.auth',JSON.stringify(auth))}const res=await fetch(config.supabaseUrl+path,{...options,headers:{apikey:config.supabaseKey,...(auth?.access_token?{Authorization:`Bearer ${auth.access_token}`} : {}),'Content-Type':'application/json',Prefer:'return=representation',...options.headers}});const txt=await res.text();let data;try{data=txt?JSON.parse(txt):null}catch{throw Error('Réponse Supabase invalide. Vérifiez l’URL du projet.')}if(!res.ok)throw Error(data?.msg||data?.message||data?.error_description||'Connexion impossible.');return data;}
+async function loadData(){if(!auth)return;const members=await api('/rest/v1/duofit_members?select=duo_id&user_id=eq.'+auth.user.id);duo=members[0]?.duo_id||null;if(duo)records=await api('/rest/v1/duofit_records?select=*&duo_id=eq.'+duo);connection();}
+async function addRecord(kind,payload){if(auth&&!duo)throw Error('Créez ou rejoignez votre duo avant d’enregistrer.');if(duo){const data=await api('/rest/v1/duofit_records',{method:'POST',body:JSON.stringify({duo_id:duo,kind,payload})});records.push(data[0])}else records.push({id:crypto.randomUUID(),kind,payload});}
+async function removeRecord(id){if(duo)await api('/rest/v1/duofit_records?id=eq.'+id,{method:'DELETE'});records=records.filter(r=>r.id!==id)}
+function exportData(){const b=new Blob([JSON.stringify({version:1,exportedAt:new Date().toISOString(),records},null,2)],{type:'application/json'}),url=URL.createObjectURL(b),a=document.createElement('a');a.href=url;a.download='DuoFit-sauvegarde-'+today()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function settings(){modal('Votre Duo Fit.',`<p>Deux comptes, un carnet partagé. La sauvegarde est active quand votre duo est connecté.</p><div class="account-actions"><button class="secondary" id="export">Exporter mes séances en JSON</button>${auth?'<button class="secondary" id="refresh">Actualiser les données</button><button class="secondary" id="logout">Se déconnecter</button>':''}</div>${duo?'<p class="notice">Duo connecté. Les séances et les activités ajoutées sont partagées entre les deux comptes.</p><button class="secondary full" id="invite">Afficher le code pour Arina / Julien</button>':auth?'<form id="duo-form"><label>Rejoindre un duo existant<input name="code" placeholder="Code d’invitation"></label><div id="form-error" class="error" role="alert"></div><button class="primary" type="submit">Rejoindre</button><button class="secondary" type="button" id="create-duo">Créer notre duo</button></form>':'<p class="notice">La connexion nécessite d’abord un projet Supabase configuré avec le fichier supabase.sql fourni. La version découverte fonctionne sans compte ; ses données sont temporaires.</p>'}<details style="margin-top:20px" ${config.supabaseUrl?'':'open'}><summary>Connexion à Supabase</summary><form id="config-form"><label>URL du projet<input name="url" type="url" placeholder="https://votre-projet.supabase.co" value="${esc(config.supabaseUrl)}" required></label><label>Clé publique publishable / anon<input name="key" value="${esc(config.supabaseKey)}" required></label><button class="secondary">Enregistrer la configuration</button></form></details>${!auth?'<form id="auth-form"><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Mot de passe<input name="password" type="password" minlength="8" autocomplete="current-password" required></label><div id="form-error" class="error" role="alert"></div><button class="primary" type="submit">Se connecter</button><button class="secondary" type="button" id="signup">Créer mon compte</button></form>':''}`);$('#export').onclick=exportData;$('#config-form').onsubmit=e=>{e.preventDefault();const d=new FormData(e.target),url=d.get('url').trim().replace(/\/$/,'');if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url)){toast('Utilisez l’URL https://…supabase.co du projet.');return}if(auth){toast('Déconnectez-vous avant de changer de projet.');return}config={supabaseUrl:url,supabaseKey:d.get('key').trim()};localStorage.setItem('duofit.config',JSON.stringify(config));toast('Configuration enregistrée.')};if(auth){$('#logout').onclick=()=>{auth=null;duo=null;records=[];sessionStorage.removeItem('duofit.auth');settings();render()};$('#refresh').onclick=async()=>{try{await loadData();render();toast('Données actualisées.')}catch(e){toast(e.message)}};if(duo){$('#invite').onclick=async()=>{try{const code=await api('/rest/v1/rpc/duofit_get_invite',{method:'POST',body:'{}'});modal('Inviter votre moitié.',`<p>Sur l’autre appareil, créez un compte puis rejoignez ce duo avec ce code. Gardez-le privé.</p><p class="account-code" style="margin-top:15px">${esc(code)}</p>`)}catch(e){toast(e.message)}}}else{$('#duo-form').onsubmit=async e=>{e.preventDefault();await formAction(e.target,async()=>{if(records.length&& !confirm('Exporter vos données de découverte avant de rejoindre ? Elles seront remplacées. Annuler pour les exporter.'))return;await api('/rest/v1/rpc/duofit_join',{method:'POST',body:JSON.stringify({invite_code:e.target.elements.code.value.trim()})});await loadData();settings();render()})};$('#create-duo').onclick=async()=>{try{await api('/rest/v1/rpc/duofit_create',{method:'POST',body:'{}'});await loadData();settings();render()}catch(e){toast(e.message)}}}}else{const f=$('#auth-form');const signin=async signup=>{if(!f.reportValidity())return;await formAction(f,async()=>{const d=new FormData(f),result=await api(signup?'/auth/v1/signup':'/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email:d.get('email'),password:d.get('password')})});if(!result.access_token){toast('Compte créé. Confirmez votre email puis connectez-vous.');return}if(records.length)exportData();auth=result;sessionStorage.setItem('duofit.auth',JSON.stringify(auth));records=[];await loadData();settings();render()})};f.onsubmit=e=>{e.preventDefault();signin(false)};$('#signup').onclick=()=>signin(true)}}
+$('#settings').innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="white"/><circle cx="15" cy="17" r="3" fill="white"/></svg>';
+$('#settings').onclick=settings;window.addEventListener('hashchange',()=>{route=location.hash.slice(1)||'home';render();window.scrollTo(0,0)});window.addEventListener('focus',async()=>{if(duo&&!$('#dialog').open){try{await loadData();render()}catch(e){toast('Actualisation impossible : '+e.message)}}});$('#dialog').addEventListener('click',e=>{if(e.target===$('#dialog')){const r=$('#dialog').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('#dialog').close()}});
+try{const res=await fetch('activities.json');if(!res.ok)throw Error('Catalogue inaccessible');base=await res.json();if(auth)await loadData()}catch(e){toast(e.message)}route=location.hash.slice(1)||'home';render();

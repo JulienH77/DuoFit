@@ -1,0 +1,13 @@
+[
+{"id":"walk","name":"Marche tranquille","category":"Cardio","minutes":10,"description":"Une promenade à votre rythme, dehors ou à l’intérieur. Choisissez une durée qui vous convient."},
+{"id":"bike","name":"Vélo d’appartement","category":"Cardio","minutes":8,"description":"Pédalez à une résistance confortable, à un rythme où vous pouvez encore discuter."},
+{"id":"dance","name":"Danser sur une chanson","category":"Cardio","minutes":4,"description":"Choisissez une chanson et bougez librement. Aucun pas imposé."},
+{"id":"stretch","name":"Étirements libres","category":"Étirements","minutes":5,"description":"Votre routine habituelle, avec des mouvements lents et confortables. Pas besoin de chercher l’amplitude maximale."},
+{"id":"shoulders","name":"Mobilité des épaules","category":"Mobilité","minutes":3,"description":"Debout ou assis, faites de petits cercles d’épaules et rapprochez doucement les omoplates, sans forcer."},
+{"id":"ankles","name":"Mobilité des chevilles","category":"Mobilité","minutes":3,"description":"Assis, faites doucement des cercles avec chaque cheville. Gardez une amplitude confortable."},
+{"id":"calves","name":"Étirement des mollets","category":"Étirements","minutes":3,"description":"Face à un mur, mains en appui, reculez une jambe avec le talon posé. Avancez doucement le bassin jusqu’à une tension légère, puis changez de côté."},
+{"id":"yoga","name":"Yoga doux","category":"Étirements","minutes":8,"description":"Une courte routine que vous connaissez déjà, sans chercher les postures difficiles. Notez les postures effectuées dans la séance."},
+{"id":"chair","name":"Se lever d’une chaise","category":"Renforcement","minutes":3,"description":"Depuis une chaise stable, levez-vous puis rasseyez-vous lentement. Faites quelques répétitions à votre rythme, avec les mains en appui si utile."},
+{"id":"balance","name":"Équilibre avec appui","category":"Mobilité","minutes":2,"description":"Près d’un support stable, décollez légèrement un pied si cela reste confortable. Gardez une main en appui et alternez les côtés."},
+{"id":"free","name":"Autre activité","category":"Libre","minutes":5,"description":"Pour une activité ponctuelle. Précisez ce que vous avez fait dans la note, ou créez votre propre activité dans le catalogue."}
+]
